@@ -1,0 +1,46 @@
+version: "3.7"
+services:
+
+  db:
+    image: mysql
+    ports:
+    - '3306:3306'
+    environment:
+      MYSQL_DATABASE: coms
+      MYSQL_USER: coms
+      MYSQL_PASSWORD: qwerty123
+      MYSQL_ROOT_PASSWORD: zxcqwe123
+    volumes:
+    - db-data:/var/lib/mysql
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+    - symfony
+
+  fpm:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      args:
+      - APP_ENV=prod
+    depends_on:
+    - db
+    environment:
+    - DATABASE_URL=mysql://coms:qwerty123@db:3306/coms?charset=utf8
+    - APP_ENV=prod
+    - APP_SECRET=378e4fa05e9a5be5eeff1b9da474b16e
+    volumes:
+    - /var/log/coms/fpm:/var/log
+    ports:
+    - 80:80
+    networks:
+    - symfony
+    command: bash -c "sleep 5 && bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration && php-fpm"
+
+volumes:
+  db-data:
+
+networks:
+  symfony:
